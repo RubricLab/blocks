@@ -3,20 +3,30 @@ import {db} from '~/utils/db'
 
 export default async function Page() {
 	return (
-		<div>
-			<h1>genuine</h1>
-			{(await db.api.findMany({select: {name: true}})).map(api => (
-				<div key={api.name}> {api.name} </div>
-			))}
-
-			<UI blocks={[
-				{type: 'Form', props: {table: 'api', operation: 'create', fields: 
-					[
-						{name: 'name', type: 'STRING'},
-						{name: 'baseUrl', type: 'STRING'}
-					]
-				}}
-			]}/>
-		</div>
+		<UI
+			blocks={[
+				{type: 'Heading', props: {text: 'GENUINE', strength: 1}},
+				{
+					type: 'Table',
+					props: {
+						headings: ['Name', 'Base URL'],
+						rows: (await db.api.findMany({select: {name: true, baseUrl: true}})).map(
+							api => [api.name, api.baseUrl]
+						)
+					}
+				},
+				{
+					type: 'Form',
+					props: {
+						table: 'api',
+						operation: 'create',
+						fields: [
+							{name: 'name', type: 'STRING'},
+							{name: 'baseUrl', type: 'STRING'}
+						]
+					}
+				}
+			]}
+		/>
 	)
 }
