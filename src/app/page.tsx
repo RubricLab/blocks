@@ -1,4 +1,4 @@
-import {Form} from '~/components/form'
+import UI from '~/ui'
 import {db} from '~/utils/db'
 
 export default async function Page() {
@@ -9,14 +9,14 @@ export default async function Page() {
 				<div key={api.name}> {api.name} </div>
 			))}
 
-			<Form
-				table='api'
-				operation='create'
-				fields={[
-					{name: 'name', type: 'STRING'},
-					{name: 'baseUrl', type: 'STRING'}
-				]}
-			/>
+			<UI blocks={[
+				{type: 'Form', props: {table: 'api', operation: 'create', fields: 
+					[
+						{name: 'name', type: 'STRING'},
+						{name: 'baseUrl', type: 'STRING'}
+					]
+				}}
+			]}/>
 		</div>
 	)
 }
