@@ -3,29 +3,23 @@ import {type} from 'prisma/prisma-client'
 export type InputProps = {
 	name: string
 	type: type
+	value?: any
 }
 
 export const Input = ({field}: {field: InputProps}) => {
 	return (
 		<label htmlFor={field.name}>
-			{field.type === 'BOOLEAN' ? (
-				<input
-					type='checkbox'
-					name={field.name}
-				/>
-			) : field.type === 'NUMBER' ? (
-				<input
-					type='number'
-					name={field.name}
-				/>
-			) : field.type === 'STRING' ? (
-				<input
-					type='text'
-					name={field.name}
-				/>
-			) : (
-				<div> {field.name} </div>
-			)}
+			<input
+				type={
+					field.type === 'BOOLEAN'
+						? 'checkbox'
+						: field.type === 'NUMBER'
+							? 'number'
+							: 'text'
+				}
+				defaultValue={field.value || undefined}
+				name={field.name}
+			/>
 		</label>
 	)
 }
