@@ -1,3 +1,4 @@
+- [2025-05-22] [bump zod](https://github.com/RubricLab/blocks/commit/df96a8e52809595876d8add5f56391fb38e4b7d6)
 - [2025-05-21] [init rebuild](https://github.com/RubricLab/blocks/commit/4ebb0e53b6625eb7563b1512cacb90553f69cb7a)
 - [2025-04-29] [block chaining first pass with response_format](https://github.com/RubricLab/blocks/commit/594a2904ddef4d21f47ba5cd010d6c568979e493)
 - [2024-10-24] [add notify-monorepo action](https://github.com/RubricLab/blocks/commit/b6352a719df1d93ac0e5663b733050da7e409293)
