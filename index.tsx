@@ -1,19 +1,16 @@
+import type { AnyAction } from '@rubriclab/actions'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
+import type { $strict } from 'zod/v4/core'
 
-export function createBlock<
-	I extends Record<string, z.ZodType>,
-	O extends z.ZodType
-	// AdditionalOptions extends Record<string, unknown> = never
->({
+export function createBlock<Input extends Record<string, z.ZodType>, Output extends z.ZodType>({
 	schema,
 	render
 }: {
-	schema: { input: I; output: O }
+	schema: { input: Input; output: Output }
 	render: (
-		input: { [K in keyof I]: z.infer<I[K]> },
-		{ emit }: { emit: (output: z.infer<O>) => void }
-		// & AdditionalOptions
+		input: z.infer<z.ZodObject<Input, $strict>>,
+		{ emit }: { emit: (output: z.infer<Output>) => void }
 	) => ReactNode
 }) {
 	return {
@@ -23,19 +20,25 @@ export function createBlock<
 	}
 }
 
-export type AnyBlock = ReturnType<typeof createBlock<Record<string, z.ZodType>, z.ZodType>>
+export type BlockWithoutRenderArgs<
+	Input extends Record<string, z.ZodType>,
+	Output extends z.ZodType
+> = Omit<ReturnType<typeof createBlock<Input, Output>>, 'render'> & {
+	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
+	render: (input: any, { emit }: { emit: (output: z.infer<Output>) => void }) => ReactNode
+}
 
-export type BlockMap = Record<string, AnyBlock>
+export type AnyBlock = BlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
 
-export function createBlockProxy<Name extends string, Block extends AnyBlock>({
+export function createBlockProxy<Name extends string, Input extends Record<string, z.ZodType>>({
 	name,
 	input
 }: {
 	name: Name
-	input: Block['schema']['input']
+	input: Input
 }) {
-	return z.strictObject({
-		block: z.literal(`block_${name}` as const),
+	return z.object({
+		block: z.literal(name),
 		props: z.object(input)
 	})
 }
@@ -81,7 +84,7 @@ export function createGenericTypeProviderBlock<
 }
 
 export function createGenericActionExecutorBlock<
-	ActionOptions extends Record<string, Omit<AnyAction, 'execute'>>,
+	ActionOptions extends Record<string, AnyAction>,
 	ChildrenOptions extends z.ZodUnion
 >({
 	actionOptions,
@@ -95,7 +98,7 @@ export function createGenericActionExecutorBlock<
 	}) => ReturnType<
 		typeof createBlock<
 			{
-				inputs: z.ZodObject<ActionOptions[keyof ActionOptions]['schema']['input']>
+				inputs: z.ZodObject<ActionOptions[keyof ActionOptions]['schema']['input'], $strict>
 				onExecute: z.ZodArray<ChildrenOptions>
 			},
 			z.ZodVoid
@@ -120,3 +123,21 @@ export function createGenericActionExecutorBlock<
 }
 
 export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>() {}
+
+export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
+	blocks
+}: {
+	blocks: BlockMap
+}) {
+	return {
+		render<BlockKey extends keyof BlockMap & string>({
+			block,
+			props
+		}: z.infer<
+			ReturnType<typeof createBlockProxy<BlockKey, BlockMap[BlockKey]['schema']['input']>>
+		>) {
+			const { render } = blocks[block] ?? (undefined as never)
+			return render(props, { emit: () => {} })
+		}
+	}
+}
