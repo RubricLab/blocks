@@ -1,3 +1,4 @@
+- [2025-05-27] [zod latest](https://github.com/RubricLab/blocks/commit/858b707b0c761cbd9cc9c7f000066fa37f06bdf0)
 - [2025-05-24] [basic renderer](https://github.com/RubricLab/blocks/commit/c69c2466ca2ca302498372201c79483e1e86c5c3)
 - [2025-05-22] [bump zod](https://github.com/RubricLab/blocks/commit/df96a8e52809595876d8add5f56391fb38e4b7d6)
 - [2025-05-21] [init rebuild](https://github.com/RubricLab/blocks/commit/4ebb0e53b6625eb7563b1512cacb90553f69cb7a)
