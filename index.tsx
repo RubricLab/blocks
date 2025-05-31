@@ -122,11 +122,11 @@ export function createGenericActionExecutorBlock<
 	}
 }
 
-export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>() {}
+// export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>() {}
 
-export function createGenericActionSelectorBlock<
-	ActionOptions extends Record<string, z.ZodType>
->() {}
+// export function createGenericActionSelectorBlock<
+// 	ActionOptions extends Record<string, z.ZodType>
+// >() {}
 
 export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 	blocks
