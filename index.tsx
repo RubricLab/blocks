@@ -124,6 +124,10 @@ export function createGenericActionExecutorBlock<
 
 export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>() {}
 
+export function createGenericActionSelectorBlock<
+	ActionOptions extends Record<string, z.ZodType>
+>() {}
+
 export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 	blocks
 }: {
@@ -132,12 +136,15 @@ export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 	return {
 		render<BlockKey extends keyof BlockMap & string>({
 			block,
-			props
+			props,
+			emit
 		}: z.infer<
 			ReturnType<typeof createBlockProxy<BlockKey, BlockMap[BlockKey]['schema']['input']>>
-		>) {
+		> & {
+			emit: (output: z.infer<BlockMap[BlockKey]['schema']['output']>) => void
+		}) {
 			const { render } = blocks[block] ?? (undefined as never)
-			return render(props, { emit: () => {} })
+			return render(props, { emit })
 		}
 	}
 }
