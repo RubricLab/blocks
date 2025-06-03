@@ -11,7 +11,8 @@ export function createBlock<Input extends Record<string, z.ZodType>, Output exte
 	schema: { input: Input; output: Output }
 	render: (
 		input: {
-			[key in keyof Input]: z.infer<Input[key]> | { react: ReactNode; value: z.infer<Input[key]> }
+			[key in keyof Input]: z.infer<Input[key]>
+			// | { react: ReactNode; value: z.infer<Input[key]> }
 		},
 		{ emit }: { emit: (output: z.infer<Output>) => void }
 	) => ReactNode
