@@ -1,22 +1,50 @@
 import type { AnyAction } from '@rubriclab/actions'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
-import type { $strict } from 'zod/v4/core'
+import type { $strict, JSONSchema } from 'zod/v4/core'
 
 export function createBlock<Input extends Record<string, z.ZodType>, Output extends z.ZodType>({
 	schema,
-	render
+	render,
+	description
 }: {
 	schema: { input: Input; output: Output }
 	render: (
-		input: z.infer<z.ZodObject<Input, $strict>>,
+		input: {
+			[key in keyof Input]: z.infer<Input[key]> | { react: ReactNode; value: z.infer<Input[key]> }
+		},
 		{ emit }: { emit: (output: z.infer<Output>) => void }
 	) => ReactNode
+	description: string | undefined
 }) {
 	return {
 		type: 'block' as const,
 		schema,
-		render
+		render,
+		description
+	}
+}
+
+export function createStatefulBlock<
+	Input extends Record<string, z.ZodType>,
+	Output extends z.ZodType
+>({
+	schema,
+	render,
+	description
+}: {
+	schema: { input: Input; output: Output }
+	render: (input: z.infer<z.ZodObject<Input, $strict>>) => {
+		react: ReactNode
+		state: z.infer<Output>
+	}
+	description: string | undefined
+}) {
+	return {
+		type: 'stateful-block' as const,
+		schema,
+		render,
+		description
 	}
 }
 
@@ -28,7 +56,20 @@ export type BlockWithoutRenderArgs<
 	render: (input: any, { emit }: { emit: (output: z.infer<Output>) => void }) => ReactNode
 }
 
-export type AnyBlock = BlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
+export type StatefulBlockWithoutRenderArgs<
+	Input extends Record<string, z.ZodType>,
+	Output extends z.ZodType
+> = Omit<ReturnType<typeof createStatefulBlock<Input, Output>>, 'render'> & {
+	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
+	render: (input: any) => {
+		react: ReactNode
+		state: z.infer<Output>
+	}
+}
+
+export type AnyBlock =
+	| BlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
+	| StatefulBlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
 
 export function createBlockProxy<Name extends string, Input extends Record<string, z.ZodType>>({
 	name,
@@ -88,22 +129,24 @@ export function createGenericActionExecutorBlock<
 	ChildrenOptions extends z.ZodUnion
 >({
 	actionOptions,
-	instantiate
+	instantiate,
+	description
 }: {
 	actionOptions: ActionOptions
 	instantiate: <ActionKey extends keyof ActionOptions>({
-		action
+		actionName
 	}: {
-		action: ActionKey
+		actionName: ActionKey
 	}) => ReturnType<
 		typeof createBlock<
-			{
-				inputs: z.ZodObject<ActionOptions[keyof ActionOptions]['schema']['input'], $strict>
-				onExecute: z.ZodArray<ChildrenOptions>
-			},
-			z.ZodVoid
+			ActionOptions[keyof ActionOptions]['schema']['input'],
+			//  & {
+			// 	onExecute: z.ZodArray<ChildrenOptions>
+			// }
+			z.ZodUndefined
 		>
 	>
+	description: string | undefined
 }) {
 	type Keys = keyof ActionOptions & string
 	const keys = Object.keys(actionOptions) as Keys[]
@@ -112,17 +155,24 @@ export function createGenericActionExecutorBlock<
 		type: 'action' as const,
 		schema: {
 			input: {
-				action: z.enum(keys)
+				actionName: z.enum(keys)
 			},
-			output: z.void()
+			output: z.undefined()
 		},
-		execute: async ({ action }: { action: Keys }) => {
-			return instantiate({ action })
-		}
+		execute: async ({ actionName }: { actionName: Keys }) => {
+			return instantiate({ actionName })
+		},
+		description
 	}
 }
 
-// export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>() {}
+export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>({
+	actionOptions
+}: {
+	actionOptions: ActionOptions
+}) {
+	return {}
+}
 
 // export function createGenericActionSelectorBlock<
 // 	ActionOptions extends Record<string, z.ZodType>
@@ -147,4 +197,37 @@ export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 			return render(props, { emit })
 		}
 	}
+}
+
+export function createBlocksDocs<BlocksMap extends Record<string, AnyBlock>>({
+	blocks
+}: {
+	blocks: BlocksMap
+}) {
+	return Object.entries(blocks)
+		.map(
+			([
+				name,
+				{
+					schema: { input, output },
+					description
+				}
+			]) => `## ${String(name)}
+### Description:
+${description ?? 'No description provided'}
+### Input Schema:
+${JSON.stringify(
+	z.toJSONSchema(
+		createBlockProxy({
+			name,
+			input
+		})
+	),
+	null,
+	2
+)}
+### Output Schema:
+${JSON.stringify(z.toJSONSchema(output), null, 2)}`
+		)
+		.join('\n\n')
 }
