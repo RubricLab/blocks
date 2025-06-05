@@ -2,10 +2,13 @@
 The Blocks package aims to provide a powerful and simple way to define blocks (which are essentially UI primitives) and execute them safely with JSON serializable payloads.
 
 It is part of Rubric's architecture for Generative UI when used with:
-- @rubriclab/blocks
-- @rubriclab/chains
-- @rubriclab/agents
-- @rubriclab/events
+- [@rubriclab/actions](https://github.com/rubriclab/actions)
+- [@rubriclab/blocks](https://github.com/rubriclab/blocks)
+- [@rubriclab/chains](https://github.com/rubriclab/chains)
+- [@rubriclab/agents](https://github.com/rubriclab/agents)
+- [@rubriclab/events](https://github.com/rubriclab/events)
+
+[Demo](https://chat.rubric.sh)
 
 ## Get Started
 ### Installation
