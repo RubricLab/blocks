@@ -1,3 +1,8 @@
+- [2025-05-30] [stash wip](https://github.com/RubricLab/blocks/commit/71271bd3cc2701dcfd50976db218156b09f410d3)
+- [2025-05-27] [zod latest](https://github.com/RubricLab/blocks/commit/858b707b0c761cbd9cc9c7f000066fa37f06bdf0)
+- [2025-05-24] [basic renderer](https://github.com/RubricLab/blocks/commit/c69c2466ca2ca302498372201c79483e1e86c5c3)
+- [2025-05-22] [bump zod](https://github.com/RubricLab/blocks/commit/df96a8e52809595876d8add5f56391fb38e4b7d6)
+- [2025-05-21] [init rebuild](https://github.com/RubricLab/blocks/commit/4ebb0e53b6625eb7563b1512cacb90553f69cb7a)
 - [2025-04-29] [block chaining first pass with response_format](https://github.com/RubricLab/blocks/commit/594a2904ddef4d21f47ba5cd010d6c568979e493)
 - [2024-10-24] [add notify-monorepo action](https://github.com/RubricLab/blocks/commit/b6352a719df1d93ac0e5663b733050da7e409293)
 - [2024-10-03] [mod lint script](https://github.com/RubricLab/blocks/commit/5bc324c8cefd0f7bb66e3489a9379436451c01e9)
