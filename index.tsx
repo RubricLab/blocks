@@ -1,7 +1,7 @@
 import type { AnyAction } from '@rubriclab/actions'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
-import type { $strict, JSONSchema } from 'zod/v4/core'
+import type { $strict } from 'zod/v4/core'
 
 export function createBlock<Input extends Record<string, z.ZodType>, Output extends z.ZodType>({
 	schema,
@@ -125,10 +125,7 @@ export function createGenericTypeProviderBlock<
 	}
 }
 
-export function createGenericActionExecutorBlock<
-	ActionOptions extends Record<string, AnyAction>,
-	ChildrenOptions extends z.ZodUnion
->({
+export function createGenericActionExecutorBlock<ActionOptions extends Record<string, AnyAction>>({
 	actionOptions,
 	instantiate,
 	description
@@ -167,13 +164,13 @@ export function createGenericActionExecutorBlock<
 	}
 }
 
-export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>({
-	actionOptions
-}: {
-	actionOptions: ActionOptions
-}) {
-	return {}
-}
+// export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>({
+// 	actionOptions
+// }: {
+// 	actionOptions: ActionOptions
+// }) {
+// 	return {}
+// }
 
 // export function createGenericActionSelectorBlock<
 // 	ActionOptions extends Record<string, z.ZodType>
@@ -195,7 +192,8 @@ export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 			emit: (output: z.infer<BlockMap[BlockKey]['schema']['output']>) => void
 		}) {
 			const { render } = blocks[block] ?? (undefined as never)
-			return render(props, { emit })
+			// biome-ignore lint/suspicious/noExplicitAny: Fix this
+			return render(props, { emit: emit as any })
 		}
 	}
 }
