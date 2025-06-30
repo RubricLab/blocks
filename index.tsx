@@ -3,24 +3,25 @@ import type { ReactNode } from 'react'
 import z from 'zod/v4'
 import type { $strict } from 'zod/v4/core'
 
-export function createBlock<Input extends Record<string, z.ZodType>, Output extends z.ZodType>({
+// const REACT_NODE = z.custom<ReactNode>()
+const REACT_NODE = z.literal('ReactNode')
+
+export function createBlock<Input extends Record<string, z.ZodType>>({
 	schema,
 	render,
 	description
 }: {
-	schema: { input: Input; output: Output }
+	schema: { input: Input }
 	render: (
 		input: {
 			[key in keyof Input]: z.infer<Input[key]>
-			// | { react: ReactNode; value: z.infer<Input[key]> }
-		},
-		{ emit }: { emit: (output: z.infer<Output>) => void }
+		}
 	) => ReactNode
 	description: string | undefined
 }) {
 	return {
 		type: 'block' as const,
-		schema,
+		schema: { input: schema.input, output: REACT_NODE },
 		render,
 		description
 	}
@@ -30,11 +31,14 @@ export function createStatefulBlock<
 	Input extends Record<string, z.ZodType>,
 	Output extends z.ZodType
 >({
-	schema,
+	schema: { input, output },
 	render,
 	description
 }: {
-	schema: { input: Input; output: Output }
+	schema: {
+		input: Input
+		output: Output
+	}
 	render: (input: z.infer<z.ZodObject<Input, $strict>>) => {
 		react: ReactNode
 		state: z.infer<Output>
@@ -43,18 +47,24 @@ export function createStatefulBlock<
 }) {
 	return {
 		type: 'stateful-block' as const,
-		schema,
+		schema: {
+			input,
+			output: z.object({
+				react: REACT_NODE,
+				state: output
+			})
+		},
 		render,
 		description
 	}
 }
 
-export type BlockWithoutRenderArgs<
-	Input extends Record<string, z.ZodType>,
-	Output extends z.ZodType
-> = Omit<ReturnType<typeof createBlock<Input, Output>>, 'render'> & {
+export type BlockWithoutRenderArgs<Input extends Record<string, z.ZodType>> = Omit<
+	ReturnType<typeof createBlock<Input>>,
+	'render'
+> & {
 	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
-	render: (input: any, { emit }: { emit: (output: z.infer<Output>) => void }) => ReactNode
+	render: (input: any) => ReactNode
 }
 
 export type StatefulBlockWithoutRenderArgs<
@@ -69,7 +79,7 @@ export type StatefulBlockWithoutRenderArgs<
 }
 
 export type AnyBlock =
-	| BlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
+	| BlockWithoutRenderArgs<Record<string, z.ZodType>>
 	| StatefulBlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
 
 export function createBlockProxy<Name extends string, Input extends Record<string, z.ZodType>>({
@@ -103,8 +113,7 @@ export function createGenericTypeProviderBlock<
 			AdditionalInput & {
 				hydrate: TypeOptions[keyof TypeOptions]['compatabilities']
 				children: z.ZodArray<ChildrenOptions>
-			},
-			z.ZodVoid
+			}
 		>
 	>
 }) {
@@ -137,11 +146,10 @@ export function createGenericActionExecutorBlock<ActionOptions extends Record<st
 		actionName: ActionKey
 	}) => ReturnType<
 		typeof createBlock<
-			ActionOptions[keyof ActionOptions]['schema']['input'],
+			ActionOptions[keyof ActionOptions]['schema']['input']
 			//  & {
 			// 	onExecute: z.ZodArray<ChildrenOptions>
 			// }
-			z.ZodUndefined
 		>
 	>
 	description: string | undefined
@@ -184,16 +192,12 @@ export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 	return {
 		render<BlockKey extends keyof BlockMap & string>({
 			block,
-			props,
-			emit
+			props
 		}: z.infer<
 			ReturnType<typeof createBlockProxy<BlockKey, BlockMap[BlockKey]['schema']['input']>>
-		> & {
-			emit: (output: z.infer<BlockMap[BlockKey]['schema']['output']>) => void
-		}) {
+		>) {
 			const { render } = blocks[block] ?? (undefined as never)
-			// biome-ignore lint/suspicious/noExplicitAny: Fix this
-			return render(props, { emit: emit as any })
+			return render(props)
 		}
 	}
 }
