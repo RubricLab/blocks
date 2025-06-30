@@ -1,3 +1,4 @@
+- [2025-06-30] [strip output from non-stateful blocks](https://github.com/RubricLab/blocks/commit/76bfd87179f78a64700ea82adee6dedc4021874d)
 - [2025-05-30] [stash wip](https://github.com/RubricLab/blocks/commit/71271bd3cc2701dcfd50976db218156b09f410d3)
 - [2025-05-27] [zod latest](https://github.com/RubricLab/blocks/commit/858b707b0c761cbd9cc9c7f000066fa37f06bdf0)
 - [2025-05-24] [basic renderer](https://github.com/RubricLab/blocks/commit/c69c2466ca2ca302498372201c79483e1e86c5c3)
