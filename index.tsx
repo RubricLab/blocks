@@ -4,7 +4,7 @@ import z from 'zod/v4'
 import type { $strict } from 'zod/v4/core'
 
 // const REACT_NODE = z.custom<ReactNode>()
-const REACT_NODE = z.literal('ReactNode')
+export const REACT_NODE = z.literal('ReactNode')
 
 export function createBlock<Input extends Record<string, z.ZodType>>({
 	schema,
