@@ -1,3 +1,4 @@
+- [2025-07-01] [consolidate biome format script](https://github.com/RubricLab/blocks/commit/f64eb188d6faa242e7c583dc842d7d08e2488004)
 - [2025-06-30] [make block input any zod type, not just objects.](https://github.com/RubricLab/blocks/commit/a42e2065ad5bb1c436c0463aa4af7e7dea243187)
 - [2025-06-30] [export react node placeholder type](https://github.com/RubricLab/blocks/commit/199540d5b5190790da8d26ed91c129d34a0449bf)
 - [2025-06-30] [strip output from non-stateful blocks](https://github.com/RubricLab/blocks/commit/76bfd87179f78a64700ea82adee6dedc4021874d)
