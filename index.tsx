@@ -1,7 +1,6 @@
 import type { AnyAction } from '@rubriclab/actions'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
-import type { $strict } from 'zod/v4/core'
 
 // const REACT_NODE = z.custom<ReactNode>()
 export const REACT_NODE = z.literal('ReactNode')
@@ -16,17 +15,14 @@ export function createBlock<Input extends z.ZodType>({
 	description: string | undefined
 }) {
 	return {
-		type: 'block' as const,
-		schema: { input, output: REACT_NODE },
+		description,
 		render,
-		description
+		schema: { input, output: REACT_NODE },
+		type: 'block' as const
 	}
 }
 
-export function createStatefulBlock<
-	Input extends z.ZodType,
-	Output extends z.ZodType
->({
+export function createStatefulBlock<Input extends z.ZodType, Output extends z.ZodType>({
 	schema: { input, output },
 	render,
 	description
@@ -42,7 +38,8 @@ export function createStatefulBlock<
 	description: string | undefined
 }) {
 	return {
-		type: 'stateful-block' as const,
+		description,
+		render,
 		schema: {
 			input,
 			output: z.strictObject({
@@ -50,8 +47,7 @@ export function createStatefulBlock<
 				state: output
 			})
 		},
-		render,
-		description
+		type: 'stateful-block' as const
 	}
 }
 
@@ -117,16 +113,16 @@ export function createGenericTypeProviderBlock<
 	const keys = Object.keys(typeOptions) as Keys[]
 
 	return {
-		type: 'action' as const,
+		execute: async ({ type }: { type: Keys }) => {
+			return instantiate({ type })
+		},
 		schema: {
 			input: {
 				type: z.enum(keys)
 			},
 			output: z.void()
 		},
-		execute: async ({ type }: { type: Keys }) => {
-			return instantiate({ type })
-		}
+		type: 'action' as const
 	}
 }
 
@@ -154,17 +150,17 @@ export function createGenericActionExecutorBlock<ActionOptions extends Record<st
 	const keys = Object.keys(actionOptions) as Keys[]
 
 	return {
-		type: 'action' as const,
+		description,
+		execute: async ({ actionName }: { actionName: Keys }) => {
+			return instantiate({ actionName })
+		},
 		schema: {
 			input: {
 				actionName: z.enum(keys)
 			},
 			output: z.undefined()
 		},
-		execute: async ({ actionName }: { actionName: Keys }) => {
-			return instantiate({ actionName })
-		},
-		description
+		type: 'action' as const
 	}
 }
 
@@ -218,8 +214,8 @@ ${description ?? 'No description provided'}
 ${JSON.stringify(
 	z.toJSONSchema(
 		createBlockProxy({
-			name,
-			input
+			input,
+			name
 		})
 	),
 	null,
