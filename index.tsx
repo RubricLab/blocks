@@ -6,29 +6,25 @@ import type { $strict } from 'zod/v4/core'
 // const REACT_NODE = z.custom<ReactNode>()
 export const REACT_NODE = z.literal('ReactNode')
 
-export function createBlock<Input extends Record<string, z.ZodType>>({
-	schema,
+export function createBlock<Input extends z.ZodType>({
+	schema: { input },
 	render,
 	description
 }: {
 	schema: { input: Input }
-	render: (
-		input: {
-			[key in keyof Input]: z.infer<Input[key]>
-		}
-	) => ReactNode
+	render: (input: z.infer<Input>) => ReactNode
 	description: string | undefined
 }) {
 	return {
 		type: 'block' as const,
-		schema: { input: schema.input, output: REACT_NODE },
+		schema: { input, output: REACT_NODE },
 		render,
 		description
 	}
 }
 
 export function createStatefulBlock<
-	Input extends Record<string, z.ZodType>,
+	Input extends z.ZodType,
 	Output extends z.ZodType
 >({
 	schema: { input, output },
@@ -39,7 +35,7 @@ export function createStatefulBlock<
 		input: Input
 		output: Output
 	}
-	render: (input: z.infer<z.ZodObject<Input, $strict>>) => {
+	render: (input: z.infer<Input>) => {
 		react: ReactNode
 		state: z.infer<Output>
 	}
@@ -49,7 +45,7 @@ export function createStatefulBlock<
 		type: 'stateful-block' as const,
 		schema: {
 			input,
-			output: z.object({
+			output: z.strictObject({
 				react: REACT_NODE,
 				state: output
 			})
@@ -59,7 +55,7 @@ export function createStatefulBlock<
 	}
 }
 
-export type BlockWithoutRenderArgs<Input extends Record<string, z.ZodType>> = Omit<
+export type BlockWithoutRenderArgs<Input extends z.ZodType> = Omit<
 	ReturnType<typeof createBlock<Input>>,
 	'render'
 > & {
@@ -68,7 +64,7 @@ export type BlockWithoutRenderArgs<Input extends Record<string, z.ZodType>> = Om
 }
 
 export type StatefulBlockWithoutRenderArgs<
-	Input extends Record<string, z.ZodType>,
+	Input extends z.ZodType,
 	Output extends z.ZodType
 > = Omit<ReturnType<typeof createStatefulBlock<Input, Output>>, 'render'> & {
 	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
@@ -79,10 +75,10 @@ export type StatefulBlockWithoutRenderArgs<
 }
 
 export type AnyBlock =
-	| BlockWithoutRenderArgs<Record<string, z.ZodType>>
-	| StatefulBlockWithoutRenderArgs<Record<string, z.ZodType>, z.ZodType>
+	| BlockWithoutRenderArgs<z.ZodType>
+	| StatefulBlockWithoutRenderArgs<z.ZodType, z.ZodType>
 
-export function createBlockProxy<Name extends string, Input extends Record<string, z.ZodType>>({
+export function createBlockProxy<Name extends string, Input extends z.ZodType>({
 	name,
 	input
 }: {
@@ -98,7 +94,7 @@ export function createBlockProxy<Name extends string, Input extends Record<strin
 export function createGenericTypeProviderBlock<
 	TypeOptions extends Record<string, { type: z.ZodType; compatabilities: z.ZodType }>,
 	ChildrenOptions extends z.ZodUnion,
-	AdditionalInput extends Record<string, z.ZodType>
+	AdditionalInput extends z.ZodType
 >({
 	typeOptions,
 	instantiate
