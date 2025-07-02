@@ -1,3 +1,4 @@
+- [2025-07-02] [bump](https://github.com/RubricLab/blocks/commit/fada0dca74806b5209c8a5122b54ffb6f446b0d3)
 - [2025-07-01] [run format](https://github.com/RubricLab/blocks/commit/10537586ca2f56361465bcc33c66c6c3b415e503)
 - [2025-07-01] [consolidate biome format script](https://github.com/RubricLab/blocks/commit/f64eb188d6faa242e7c583dc842d7d08e2488004)
 - [2025-06-30] [make block input any zod type, not just objects.](https://github.com/RubricLab/blocks/commit/a42e2065ad5bb1c436c0463aa4af7e7dea243187)
