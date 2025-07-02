@@ -81,9 +81,9 @@ export function createBlockProxy<Name extends string, Input extends z.ZodType>({
 	name: Name
 	input: Input
 }) {
-	return z.object({
+	return z.strictObject({
 		block: z.literal(name),
-		props: z.object(input)
+		props: input
 	})
 }
 
@@ -117,9 +117,9 @@ export function createGenericTypeProviderBlock<
 			return instantiate({ type })
 		},
 		schema: {
-			input: {
+			input: z.object({
 				type: z.enum(keys)
-			},
+			}),
 			output: z.void()
 		},
 		type: 'action' as const
@@ -155,9 +155,9 @@ export function createGenericActionExecutorBlock<ActionOptions extends Record<st
 			return instantiate({ actionName })
 		},
 		schema: {
-			input: {
+			input: z.object({
 				actionName: z.enum(keys)
-			},
+			}),
 			output: z.undefined()
 		},
 		type: 'action' as const
@@ -185,9 +185,10 @@ export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 		render<BlockKey extends keyof BlockMap & string>({
 			block,
 			props
-		}: z.infer<
-			ReturnType<typeof createBlockProxy<BlockKey, BlockMap[BlockKey]['schema']['input']>>
-		>) {
+		}: {
+			block: BlockKey
+			props: z.infer<BlockMap[BlockKey]['schema']['input']>
+		}) {
 			const { render } = blocks[block] ?? (undefined as never)
 			return render(props)
 		}
