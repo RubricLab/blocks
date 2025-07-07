@@ -1,4 +1,5 @@
 import type { AnyAction } from '@rubriclab/actions'
+import type { SupportedZodTypes } from '@rubriclab/chains/lib/types'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
 
@@ -33,7 +34,7 @@ export function createStatefulBlock<Input extends z.ZodType, Output extends z.Zo
 	}
 	render: (input: z.infer<Input>) => {
 		react: ReactNode
-		state: z.infer<Output>
+		getState: () => z.infer<Output>
 	}
 	description: string | undefined
 }) {
@@ -66,7 +67,7 @@ export type StatefulBlockWithoutRenderArgs<
 	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
 	render: (input: any) => {
 		react: ReactNode
-		state: z.infer<Output>
+		getState: z.infer<Output>
 	}
 }
 
@@ -226,4 +227,27 @@ ${JSON.stringify(
 ${JSON.stringify(z.toJSONSchema(output), null, 2)}`
 		)
 		.join('\n\n')
+}
+
+function orReact(type: z.ZodType) {
+	return z.union([type, z.object({ react: REACT_NODE, state: type })])
+}
+
+export function getStateful(type: SupportedZodTypes) {
+	switch (type.def.type) {
+		case 'object': {
+			return z.object(
+				Object.fromEntries(Object.entries(type.def.shape).map(([key, field]) => [key, orReact(field)]))
+			)
+		}
+		case 'array': {
+			return z.array(orReact(type.def.element))
+		}
+		case 'union': {
+			return z.union(type.def.options.map(orReact))
+		}
+		default: {
+			return orReact(type)
+		}
+	}
 }

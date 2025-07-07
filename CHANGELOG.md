@@ -1,3 +1,4 @@
+- [2025-07-07] [state getter](https://github.com/RubricLab/blocks/commit/9ae794c0c4352abdb15c24602f1d79962b17a5d1)
 - [2025-07-02] [bump](https://github.com/RubricLab/blocks/commit/fada0dca74806b5209c8a5122b54ffb6f446b0d3)
 - [2025-07-01] [run format](https://github.com/RubricLab/blocks/commit/10537586ca2f56361465bcc33c66c6c3b415e503)
 - [2025-07-01] [consolidate biome format script](https://github.com/RubricLab/blocks/commit/f64eb188d6faa242e7c583dc842d7d08e2488004)
