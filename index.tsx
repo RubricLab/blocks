@@ -1,4 +1,3 @@
-import type { AnyAction } from '@rubriclab/actions'
 import type { SupportedZodTypes } from '@rubriclab/chains/lib/types'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
@@ -33,14 +32,25 @@ export function createStatefulBlock<Input extends z.ZodType, Output extends z.Zo
 		output: Output
 	}
 	render: (input: z.infer<Input>) => {
-		react: ReactNode
-		getState: () => z.infer<Output>
+		initialState: z.infer<Output>
+		component: ({ emit }: { emit: (value: z.infer<Output>) => void }) => ReactNode
 	}
 	description: string | undefined
 }) {
 	return {
 		description,
-		render,
+		render: (input: z.infer<Input>) => {
+			const { initialState, component } = render(input)
+			let state = initialState
+			return {
+				getState: () => state,
+				react: component({
+					emit: emitted => {
+						state = emitted
+					}
+				})
+			}
+		},
 		schema: {
 			input,
 			output: z.strictObject({
@@ -88,94 +98,76 @@ export function createBlockProxy<Name extends string, Input extends z.ZodType>({
 	})
 }
 
-export function createGenericTypeProviderBlock<
-	TypeOptions extends Record<string, { type: z.ZodType; compatabilities: z.ZodType }>,
-	ChildrenOptions extends z.ZodUnion,
-	AdditionalInput extends z.ZodType
+export function createGenericBlock<Types extends Record<string, { input: z.ZodType }>>({
+	types,
+	render,
+	handleBlock
+}: {
+	types: Types
+	render: <TypeKey extends keyof Types>(props: z.infer<Types[TypeKey]['input']>) => ReactNode
+	handleBlock: <TypeKey extends keyof Types>(
+		block: ReturnType<typeof createBlock<Types[TypeKey]['input']>>
+	) => void
+}) {
+	return {
+		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const schema = types[typeKey] ?? (undefined as never)
+			const block = createBlock<(typeof schema)['input']>({
+				description: '',
+				render,
+				schema
+			})
+			handleBlock(block)
+
+			return null
+		},
+		schema: {
+			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
+				[K in keyof Types]: K & string
+			}>,
+			output: z.null()
+		}
+	}
+}
+
+export function createGenericStatefulBlock<
+	Types extends Record<string, { input: z.ZodType; output: z.ZodType }>
 >({
-	typeOptions,
-	instantiate
+	types,
+	render,
+	handleBlock
 }: {
-	typeOptions: TypeOptions
-	instantiate: <TypeKey extends keyof TypeOptions & string>({
-		type
-	}: {
-		type: TypeKey
-	}) => ReturnType<
-		typeof createBlock<
-			AdditionalInput & {
-				hydrate: TypeOptions[keyof TypeOptions]['compatabilities']
-				children: z.ZodArray<ChildrenOptions>
-			}
-		>
-	>
+	types: Types
+	render: <TypeKey extends keyof Types>(
+		props: z.infer<Types[TypeKey]['input']>
+	) => {
+		initialState: z.infer<Types[TypeKey]['output']>
+		component: ({ emit }: { emit: (value: z.infer<Types[TypeKey]['output']>) => void }) => ReactNode
+	}
+	handleBlock: <TypeKey extends keyof Types>(
+		block: ReturnType<typeof createStatefulBlock<Types[TypeKey]['input'], Types[TypeKey]['output']>>
+	) => void
 }) {
-	type Keys = keyof TypeOptions & string
-	const keys = Object.keys(typeOptions) as Keys[]
-
 	return {
-		execute: async ({ type }: { type: Keys }) => {
-			return instantiate({ type })
+		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const schema = types[typeKey] ?? (undefined as never)
+			const block = createStatefulBlock<(typeof schema)['input'], (typeof schema)['output']>({
+				description: '',
+				render,
+				schema
+			})
+			handleBlock(block)
+
+			return null
 		},
 		schema: {
-			input: z.object({
-				type: z.enum(keys)
-			}),
-			output: z.void()
-		},
-		type: 'action' as const
+			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
+				[K in keyof Types]: K & string
+			}>,
+			output: z.null()
+		}
 	}
 }
-
-export function createGenericActionExecutorBlock<ActionOptions extends Record<string, AnyAction>>({
-	actionOptions,
-	instantiate,
-	description
-}: {
-	actionOptions: ActionOptions
-	instantiate: <ActionKey extends keyof ActionOptions>({
-		actionName
-	}: {
-		actionName: ActionKey
-	}) => ReturnType<
-		typeof createBlock<
-			ActionOptions[keyof ActionOptions]['schema']['input']
-			//  & {
-			// 	onExecute: z.ZodArray<ChildrenOptions>
-			// }
-		>
-	>
-	description: string | undefined
-}) {
-	type Keys = keyof ActionOptions & string
-	const keys = Object.keys(actionOptions) as Keys[]
-
-	return {
-		description,
-		execute: async ({ actionName }: { actionName: Keys }) => {
-			return instantiate({ actionName })
-		},
-		schema: {
-			input: z.object({
-				actionName: z.enum(keys)
-			}),
-			output: z.undefined()
-		},
-		type: 'action' as const
-	}
-}
-
-// export function createGenericActionMapperBlock<ActionOptions extends Record<string, z.ZodType>>({
-// 	actionOptions
-// }: {
-// 	actionOptions: ActionOptions
-// }) {
-// 	return {}
-// }
-
-// export function createGenericActionSelectorBlock<
-// 	ActionOptions extends Record<string, z.ZodType>
-// >() {}
 
 export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
 	blocks
