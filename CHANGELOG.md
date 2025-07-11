@@ -1,3 +1,4 @@
+- [2025-07-11] [stateful object ideas](https://github.com/RubricLab/blocks/commit/6c40f195a14aa54681b96e53fba321f603a85b10)
 - [2025-07-08] [stash - stateful, generics progress](https://github.com/RubricLab/blocks/commit/76b61ab638f8a2e153da3fa8b875fdcde6d422c1)
 - [2025-07-07] [state getter](https://github.com/RubricLab/blocks/commit/9ae794c0c4352abdb15c24602f1d79962b17a5d1)
 - [2025-07-02] [bump](https://github.com/RubricLab/blocks/commit/fada0dca74806b5209c8a5122b54ffb6f446b0d3)

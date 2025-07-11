@@ -1,9 +1,31 @@
 import type { SupportedZodTypes } from '@rubriclab/chains/lib/types'
 import type { ReactNode } from 'react'
 import z from 'zod/v4'
+import type { $strict } from 'zod/v4/core'
 
 // const REACT_NODE = z.custom<ReactNode>()
 export const REACT_NODE = z.literal('ReactNode')
+
+export function statefulObject<Type extends z.ZodObject>(type: Type) {
+	return z.strictObject(
+		Object.fromEntries(
+			Object.entries(type.def.shape).map(([key, field]) => [
+				key,
+				z.union([field, z.strictObject({ react: REACT_NODE, state: field })])
+			])
+		)
+	) as z.ZodObject<
+		{
+			[K in keyof Type['def']['shape']]: z.ZodUnion<
+				[
+					Type['def']['shape'][K],
+					z.ZodObject<{ react: typeof REACT_NODE; state: Type['def']['shape'][K] }, $strict>
+				]
+			>
+		},
+		$strict
+	>
+}
 
 export function createBlock<Input extends z.ZodType>({
 	schema: { input },
@@ -101,15 +123,22 @@ export function createBlockProxy<Name extends string, Input extends z.ZodType>({
 export function createGenericBlock<Types extends Record<string, { input: z.ZodType }>>({
 	types,
 	render,
-	handleBlock
+	handleBlock,
+	description
 }: {
 	types: Types
 	render: <TypeKey extends keyof Types>(props: z.infer<Types[TypeKey]['input']>) => ReactNode
-	handleBlock: <TypeKey extends keyof Types>(
+	handleBlock: <TypeKey extends keyof Types>({
+		type,
+		block
+	}: {
+		type: TypeKey
 		block: ReturnType<typeof createBlock<Types[TypeKey]['input']>>
-	) => void
+	}) => void
+	description: string
 }) {
 	return {
+		description,
 		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
 			const schema = types[typeKey] ?? (undefined as never)
 			const block = createBlock<(typeof schema)['input']>({
@@ -117,16 +146,27 @@ export function createGenericBlock<Types extends Record<string, { input: z.ZodTy
 				render,
 				schema
 			})
-			handleBlock(block)
+			handleBlock({ block, type: typeKey })
 
 			return null
+		},
+		async instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const schema = types[typeKey] ?? (undefined as never)
+			const block = createBlock<(typeof schema)['input']>({
+				description: '',
+				render,
+				schema
+			})
+
+			return { block, type: typeKey }
 		},
 		schema: {
 			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
 				[K in keyof Types]: K & string
 			}>,
 			output: z.null()
-		}
+		},
+		type: 'generic-block'
 	}
 }
 
@@ -135,7 +175,8 @@ export function createGenericStatefulBlock<
 >({
 	types,
 	render,
-	handleBlock
+	handleBlock,
+	description
 }: {
 	types: Types
 	render: <TypeKey extends keyof Types>(
@@ -144,11 +185,17 @@ export function createGenericStatefulBlock<
 		initialState: z.infer<Types[TypeKey]['output']>
 		component: ({ emit }: { emit: (value: z.infer<Types[TypeKey]['output']>) => void }) => ReactNode
 	}
-	handleBlock: <TypeKey extends keyof Types>(
+	handleBlock: <TypeKey extends keyof Types>({
+		type,
+		block
+	}: {
+		type: TypeKey
 		block: ReturnType<typeof createStatefulBlock<Types[TypeKey]['input'], Types[TypeKey]['output']>>
-	) => void
+	}) => void
+	description: string
 }) {
 	return {
+		description,
 		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
 			const schema = types[typeKey] ?? (undefined as never)
 			const block = createStatefulBlock<(typeof schema)['input'], (typeof schema)['output']>({
@@ -156,16 +203,26 @@ export function createGenericStatefulBlock<
 				render,
 				schema
 			})
-			handleBlock(block)
+			handleBlock({ block, type: typeKey })
 
 			return null
+		},
+		async instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const schema = types[typeKey] ?? (undefined as never)
+			const block = createStatefulBlock<(typeof schema)['input'], (typeof schema)['output']>({
+				description: '',
+				render,
+				schema
+			})
+			return { block, type: typeKey }
 		},
 		schema: {
 			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
 				[K in keyof Types]: K & string
 			}>,
 			output: z.null()
-		}
+		},
+		type: 'generic-stateful-block'
 	}
 }
 
