@@ -117,11 +117,14 @@ export function createGenericStatefulBlock<
 	description
 }: {
 	types: Types
-	render: <K extends keyof Types>(
-		input: z.infer<Types[K]['input']>
-	) => {
-		initialState: z.infer<Types[K]['output']>
-		component: ({ emit }: { emit: (value: z.infer<Types[K]['output']>) => void }) => ReactNode
+	render: // <K extends keyof Types> // TODO FIX
+	(input: z.infer<Types[keyof Types]['input']>) => {
+		initialState: z.infer<Types[keyof Types]['output']>
+		component: ({
+			emit
+		}: {
+			emit: (value: z.infer<Types[keyof Types]['output']>) => void
+		}) => ReactNode
 	}
 
 	description: string

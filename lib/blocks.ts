@@ -31,7 +31,7 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 	type STK = StatefulKeys<BM>
 	type GK = GenericKeys<BM>
 	type GSK = StatefulGenericKeys<BM>
-	type BlockKey = SK | STK | GK
+	type BlockKey = SK | STK | GK | GSK
 
 	type PropsFor<K extends BlockKey> = K extends SK
 		? z.infer<BM[K]['schema']['input']>
@@ -66,13 +66,9 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 	function render<K extends BlockKey>(opts: { block: K; props: PropsFor<K> }): ReturnFor<K> {
 		const { block, props } = opts
 		const match = (block as string).match(/^([^<]+)<([^>]+)>$/)
-		console.log('HERE')
-		console.log(block)
 
 		if (match) {
 			const [, outer, inner] = match
-
-			console.log({ inner, outer })
 
 			if (!outer || !inner) throw 'shit'
 
@@ -80,8 +76,7 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 				.instantiate(inner)
 				.render(props) as ReturnFor<K>
 		}
-
-		console.log('HERERER', block, Object.keys(blocks))
+		// biome-ignore lint/suspicious/noExplicitAny: TECH DEBT
 		const b = (blocks as any)[block]
 		return b.render(props)
 
