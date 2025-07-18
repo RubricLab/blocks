@@ -1,3 +1,4 @@
+- [2025-07-18] [cleanup, use @/shapes](https://github.com/RubricLab/blocks/commit/5f06ab5e02137a45a28d9bff5356c77e9c18efd6)
 - [2025-07-17] [stash stateful, generics, rendering lift](https://github.com/RubricLab/blocks/commit/f3afa70c0e169a7ad22dbef97db1b2c9814b5f4e)
 - [2025-07-11] [stateful object ideas](https://github.com/RubricLab/blocks/commit/6c40f195a14aa54681b96e53fba321f603a85b10)
 - [2025-07-08] [stash - stateful, generics progress](https://github.com/RubricLab/blocks/commit/76b61ab638f8a2e153da3fa8b875fdcde6d422c1)

@@ -2,9 +2,10 @@
 	"dependencies": {
 		"@rubriclab/config": "*",
 		"@rubriclab/package": "*",
+		"@types/react": "^19.1.8",
 		"zod": "latest"
 	},
-	"main": "index.ts",
+	"main": "lib/index.tsx",
 	"name": "@rubriclab/blocks",
 	"publishConfig": {
 		"access": "public"
@@ -20,5 +21,5 @@
 	"simple-git-hooks": {
 		"post-commit": "bun x @rubriclab/package post-commit"
 	},
-	"version": "0.0.23"
+	"version": "0.0.24"
 }
