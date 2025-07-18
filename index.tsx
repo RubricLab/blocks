@@ -1,254 +1,258 @@
-import type { SupportedZodTypes } from '@rubriclab/chains/lib/types'
-import type { ReactNode } from 'react'
-import z from 'zod/v4'
-import type { $strict } from 'zod/v4/core'
+import { custom } from "@rubriclab/chains/lib2/utils";
+import type { ReactNode } from "react";
+import z, { type ZodType } from "zod/v4";
+import type { AnyBlock, Block, GenericBlock, StatefulBlock } from "./types";
 
-// const REACT_NODE = z.custom<ReactNode>()
-export const REACT_NODE = z.literal('ReactNode')
+const REACT_NODE = custom<ReactNode, "ReactNode">("ReactNode");
 
-export function statefulObject<Type extends z.ZodObject>(type: Type) {
-	return z.strictObject(
-		Object.fromEntries(
-			Object.entries(type.def.shape).map(([key, field]) => [
-				key,
-				z.union([field, z.strictObject({ react: REACT_NODE, state: field })])
-			])
-		)
-	) as z.ZodObject<
-		{
-			[K in keyof Type['def']['shape']]: z.ZodUnion<
-				[
-					Type['def']['shape'][K],
-					z.ZodObject<{ react: typeof REACT_NODE; state: Type['def']['shape'][K] }, $strict>
-				]
-			>
-		},
-		$strict
-	>
+export function stateful<State extends z.ZodType>(state: State) {
+	return z.tuple([state, REACT_NODE]);
 }
 
 export function createBlock<Input extends z.ZodType>({
 	schema: { input },
 	render,
-	description
+	description,
 }: {
-	schema: { input: Input }
-	render: (input: z.infer<Input>) => ReactNode
-	description: string | undefined
+	schema: { input: Input };
+	render: (input: z.infer<Input>) => ReactNode;
+	description: string | undefined;
 }) {
 	return {
 		description,
 		render,
 		schema: { input, output: REACT_NODE },
-		type: 'block' as const
-	}
+		type: "block" as const,
+	} satisfies Block<Input, z.infer<Input>>;
 }
 
-export function createStatefulBlock<Input extends z.ZodType, Output extends z.ZodType>({
+export function createStatefulBlock<
+	Input extends z.ZodType,
+	Output extends z.ZodType,
+>({
 	schema: { input, output },
 	render,
-	description
+	description,
 }: {
 	schema: {
-		input: Input
-		output: Output
-	}
+		input: Input;
+		output: Output;
+	};
 	render: (input: z.infer<Input>) => {
-		initialState: z.infer<Output>
-		component: ({ emit }: { emit: (value: z.infer<Output>) => void }) => ReactNode
-	}
-	description: string | undefined
+		initialState: z.infer<Output>;
+		component: ({
+			emit,
+		}: {
+			emit: (value: z.infer<Output>) => void;
+		}) => ReactNode;
+	};
+	description: string | undefined;
 }) {
 	return {
 		description,
 		render: (input: z.infer<Input>) => {
-			const { initialState, component } = render(input)
-			let state = initialState
-			return {
-				getState: () => state,
-				react: component({
-					emit: emitted => {
-						state = emitted
-					}
-				})
-			}
+			const { initialState, component: Component } = render(input);
+			let state = initialState;
+			return [
+				(() => state) as typeof state,
+				<Component
+					emit={(emitted) => {
+						state = emitted;
+					}}
+				/>,
+			];
 		},
 		schema: {
 			input,
-			output: z.strictObject({
-				react: REACT_NODE,
-				state: output
-			})
+			output: stateful(output),
 		},
-		type: 'stateful-block' as const
-	}
+		type: "stateful-block" as const,
+	} satisfies StatefulBlock<Input, Output, z.infer<Input>>;
 }
-
-export type BlockWithoutRenderArgs<Input extends z.ZodType> = Omit<
-	ReturnType<typeof createBlock<Input>>,
-	'render'
-> & {
-	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
-	render: (input: any) => ReactNode
-}
-
-export type StatefulBlockWithoutRenderArgs<
-	Input extends z.ZodType,
-	Output extends z.ZodType
-> = Omit<ReturnType<typeof createStatefulBlock<Input, Output>>, 'render'> & {
-	// biome-ignore lint/suspicious/noExplicitAny: this is required to support generic functions that need to extend a placeholder for Blocks.
-	render: (input: any) => {
-		react: ReactNode
-		getState: z.infer<Output>
-	}
-}
-
-export type AnyBlock =
-	| BlockWithoutRenderArgs<z.ZodType>
-	| StatefulBlockWithoutRenderArgs<z.ZodType, z.ZodType>
 
 export function createBlockProxy<Name extends string, Input extends z.ZodType>({
 	name,
-	input
+	input,
 }: {
-	name: Name
-	input: Input
+	name: Name;
+	input: Input;
 }) {
 	return z.strictObject({
 		block: z.literal(name),
-		props: input
-	})
+		props: input,
+	});
 }
 
-export function createGenericBlock<Types extends Record<string, { input: z.ZodType }>>({
-	types,
-	render,
-	handleBlock,
-	description
-}: {
-	types: Types
-	render: <TypeKey extends keyof Types>(props: z.infer<Types[TypeKey]['input']>) => ReactNode
-	handleBlock: <TypeKey extends keyof Types>({
-		type,
-		block
-	}: {
-		type: TypeKey
-		block: ReturnType<typeof createBlock<Types[TypeKey]['input']>>
-	}) => void
-	description: string
-}) {
-	return {
-		description,
-		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
-			const schema = types[typeKey] ?? (undefined as never)
-			const block = createBlock<(typeof schema)['input']>({
-				description: '',
-				render,
-				schema
-			})
-			handleBlock({ block, type: typeKey })
-
-			return null
-		},
-		async instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
-			const schema = types[typeKey] ?? (undefined as never)
-			const block = createBlock<(typeof schema)['input']>({
-				description: '',
-				render,
-				schema
-			})
-
-			return { block, type: typeKey }
-		},
-		schema: {
-			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
-				[K in keyof Types]: K & string
-			}>,
-			output: z.null()
-		},
-		type: 'generic-block'
-	}
-}
-
-export function createGenericStatefulBlock<
-	Types extends Record<string, { input: z.ZodType; output: z.ZodType }>
+export function createGenericBlock<
+	Types extends Record<string, { input: z.ZodType }>,
 >({
 	types,
 	render,
-	handleBlock,
-	description
+	description,
 }: {
-	types: Types
-	render: <TypeKey extends keyof Types>(
-		props: z.infer<Types[TypeKey]['input']>
-	) => {
-		initialState: z.infer<Types[TypeKey]['output']>
-		component: ({ emit }: { emit: (value: z.infer<Types[TypeKey]['output']>) => void }) => ReactNode
-	}
-	handleBlock: <TypeKey extends keyof Types>({
-		type,
-		block
-	}: {
-		type: TypeKey
-		block: ReturnType<typeof createStatefulBlock<Types[TypeKey]['input'], Types[TypeKey]['output']>>
-	}) => void
-	description: string
+	types: Types;
+	render: <K extends keyof Types>(
+		props: z.infer<Types[K]["input"]>,
+	) => ReactNode;
+	description: string;
+}) {
+	const input = z.enum(
+		Object.fromEntries(Object.keys(types).map((k) => [k, k])),
+	) as z.ZodEnum<{
+		[K in keyof Types]: K & string;
+	}>;
+
+	return {
+		description,
+		instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const type = types[typeKey];
+			if (!type) throw "bad block";
+			const block = createBlock<Types[TypeKey]["input"]>({
+				description: "",
+				render,
+				schema: type,
+			});
+
+			return block;
+		},
+		schema: {
+			input,
+			output: z.null(),
+		},
+		type: "generic-block" as const,
+		types,
+	} satisfies GenericBlock<Types, Types>;
+}
+
+export function createGenericStatefulBlock<
+	Types extends Record<string, { input: z.ZodType; output: z.ZodType }>,
+	InstantiatedInput extends ZodType,
+	InstantiatedOutput extends ZodType,
+>({
+	types,
+	getSchema,
+	render,
+	description,
+}: {
+	types: Types;
+	render: (props: z.infer<InstantiatedInput>) => {
+		initialState: z.infer<InstantiatedOutput>;
+		component: ({
+			emit,
+		}: {
+			emit: (value: z.infer<InstantiatedOutput>) => void;
+		}) => ReactNode;
+	};
+	getSchema: <TypeKey extends keyof Types>(
+		typeKey: TypeKey,
+	) => { input: InstantiatedInput; output: InstantiatedOutput };
+
+	description: string;
 }) {
 	return {
 		description,
-		async execute<TypeKey extends keyof Types>(typeKey: TypeKey) {
-			const schema = types[typeKey] ?? (undefined as never)
-			const block = createStatefulBlock<(typeof schema)['input'], (typeof schema)['output']>({
-				description: '',
+		instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
+			const schema = getSchema(typeKey);
+			const block = createStatefulBlock<
+				(typeof schema)["input"],
+				(typeof schema)["output"]
+			>({
+				description: "",
 				render,
-				schema
-			})
-			handleBlock({ block, type: typeKey })
-
-			return null
-		},
-		async instantiate<TypeKey extends keyof Types>(typeKey: TypeKey) {
-			const schema = types[typeKey] ?? (undefined as never)
-			const block = createStatefulBlock<(typeof schema)['input'], (typeof schema)['output']>({
-				description: '',
-				render,
-				schema
-			})
-			return { block, type: typeKey }
+				schema,
+			});
+			return block;
 		},
 		schema: {
-			input: z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as z.ZodEnum<{
-				[K in keyof Types]: K & string
+			input: z.enum(
+				Object.fromEntries(Object.keys(types).map((k) => [k, k])),
+			) as z.ZodEnum<{
+				[K in keyof Types]: K & string;
 			}>,
-			output: z.null()
+			output: z.null(),
 		},
-		type: 'generic-stateful-block'
-	}
+		type: "generic-stateful-block" as const,
+	};
 }
 
-export function createBlockRenderer<BlockMap extends Record<string, AnyBlock>>({
-	blocks
+type StaticKeys<BM> = {
+	[K in keyof BM]: BM[K] extends Block ? K : never;
+}[keyof BM];
+type StatefulKeys<BM> = {
+	[K in keyof BM]: BM[K] extends StatefulBlock ? K : never;
+}[keyof BM];
+type GenericKeys<BM> = {
+	[K in keyof BM]: BM[K] extends GenericBlock<infer _Types, infer Types>
+		? `${K & string}<${keyof Types & string}>`
+		: never;
+}[keyof BM];
+
+export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
+	blocks,
 }: {
-	blocks: BlockMap
+	blocks: BM;
 }) {
-	return {
-		render<BlockKey extends keyof BlockMap & string>({
-			block,
-			props
-		}: {
-			block: BlockKey
-			props: z.infer<BlockMap[BlockKey]['schema']['input']>
-		}) {
-			const { render } = blocks[block] ?? (undefined as never)
-			return render(props)
+	type SK = StaticKeys<BM>;
+	type STK = StatefulKeys<BM>;
+	type GK = GenericKeys<BM>;
+	type BlockKey = SK | STK | GK;
+
+	type PropsFor<K extends BlockKey> = K extends SK
+		? z.infer<BM[K]["schema"]["input"]>
+		: K extends STK
+			? z.infer<BM[K]["schema"]["input"]>
+			: K extends `${infer B}<${infer I}>`
+				? BM[B] extends GenericBlock<any, any>
+					? z.infer<BM[B]["types"][I]["input"]>
+					: never
+				: never;
+
+	type ReturnFor<K extends BlockKey> = K extends SK
+		? ReturnType<BM[K] extends Block ? BM[K]["render"] : never>
+		: K extends STK
+			? ReturnType<BM[K] extends StatefulBlock ? BM[K]["render"] : never>
+			: K extends `${infer B}<${infer I}>`
+				? BM[B] extends GenericBlock<infer _Types, infer Types>
+					? ReturnType<
+							Block<
+								BM[B]["types"][I]["input"],
+								z.infer<BM[B]["types"][I]["input"]>
+							>["render"]
+						>
+					: never
+				: never;
+
+	function _render<K extends BlockKey>(opts: {
+		block: K;
+		props: PropsFor<K>;
+	}): ReturnFor<K> {
+		const { block, props } = opts;
+		const match = (block as string).match(/^([^<]+)<([^>]+)>$/);
+
+		if (match) {
+			const [, outer, inner] = match;
+			console.log({ inner, outer });
+
+			if (!outer || !inner) throw "shit";
+
+			return (blocks[outer] as GenericBlock<any, any>)
+				.instantiate(inner)
+				.render(props) as ReturnFor<K>;
 		}
+
+		const b = (blocks as any)[block];
+		return b.render(props);
+
+		// return b.render(b.schema.input.parse(props));
 	}
+
+	return { render: _render, t: undefined as unknown as BM };
 }
 
 export function createBlocksDocs<BlocksMap extends Record<string, AnyBlock>>({
-	blocks
+	blocks,
 }: {
-	blocks: BlocksMap
+	blocks: BlocksMap;
 }) {
 	return Object.entries(blocks)
 		.map(
@@ -256,47 +260,25 @@ export function createBlocksDocs<BlocksMap extends Record<string, AnyBlock>>({
 				name,
 				{
 					schema: { input, output },
-					description
-				}
+					description,
+				},
 			]) => `## ${String(name)}
 ### Description:
-${description ?? 'No description provided'}
+${description ?? "No description provided"}
 ### Input Schema:
 ${JSON.stringify(
 	z.toJSONSchema(
 		createBlockProxy({
 			input,
-			name
-		})
+			name,
+		}),
+		{ unrepresentable: "any" },
 	),
 	null,
-	2
+	2,
 )}
 ### Output Schema:
-${JSON.stringify(z.toJSONSchema(output), null, 2)}`
+${JSON.stringify(z.toJSONSchema(output, { unrepresentable: "any" }), null, 2)}`,
 		)
-		.join('\n\n')
-}
-
-function orReact(type: z.ZodType) {
-	return z.union([type, z.object({ react: REACT_NODE, state: type })])
-}
-
-export function getStateful(type: SupportedZodTypes) {
-	switch (type.def.type) {
-		case 'object': {
-			return z.object(
-				Object.fromEntries(Object.entries(type.def.shape).map(([key, field]) => [key, orReact(field)]))
-			)
-		}
-		case 'array': {
-			return z.array(orReact(type.def.element))
-		}
-		case 'union': {
-			return z.union(type.def.options.map(orReact))
-		}
-		default: {
-			return orReact(type)
-		}
-	}
+		.join("\n\n");
 }
