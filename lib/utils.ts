@@ -82,7 +82,8 @@ export function createGenericBlock<Types extends Record<string, { input: ZodType
 	description
 }: {
 	types: Types
-	render: <K extends keyof Types>(props: z.infer<Types[K]['input']>) => ReactNode
+	render: // <K extends keyof Types> // TODO FIX
+	(props: z.infer<Types[keyof Types]['input']>) => ReactNode
 	description: string
 }) {
 	const input = z.enum(Object.fromEntries(Object.keys(types).map(k => [k, k]))) as ZodEnum<{

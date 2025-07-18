@@ -1,3 +1,4 @@
+- [2025-07-18] [temp fix to generic blocks](https://github.com/RubricLab/blocks/commit/9cbac5cfa1bf453210262613d0eb8fa03d624d32)
 - [2025-07-18] [cleanup](https://github.com/RubricLab/blocks/commit/499f1e2936d0515e4dd53f116b9db2841321bf33)
 - [2025-07-18] [stateful generics push](https://github.com/RubricLab/blocks/commit/bb7ae9836da634cb48896cd1221f550db609594e)
 - [2025-07-18] [cleanup, use @/shapes](https://github.com/RubricLab/blocks/commit/5f06ab5e02137a45a28d9bff5356c77e9c18efd6)
