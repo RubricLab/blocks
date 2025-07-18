@@ -4,7 +4,7 @@ import type { REACT_NODE, stateful } from './utils'
 
 export type Block<
 	Input extends z.ZodType = z.ZodType,
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	// biome-ignore lint/suspicious/noExplicitAny:_
 	InferredInput extends z.infer<Input> = any
 > = {
 	type: 'block'
@@ -16,7 +16,7 @@ export type Block<
 export type StatefulBlock<
 	Input extends z.ZodType = z.ZodType,
 	Output extends z.ZodType = z.ZodType,
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	// biome-ignore lint/suspicious/noExplicitAny:_
 	InferredInput extends z.infer<Input> = any
 > = {
 	type: 'stateful-block'
@@ -30,6 +30,7 @@ export type StatefulBlock<
 
 export type GenericBlock<
 	Types extends Record<string, { input: z.ZodType }> = Record<string, { input: z.ZodType }>,
+	// biome-ignore lint/suspicious/noExplicitAny:_
 	TypeKeys extends keyof Types = any
 > = {
 	type: 'generic-block'
@@ -45,9 +46,12 @@ export type GenericBlock<
 }
 
 export type GenericStatefulBlock<
-	Types extends object,
-	InstantiatedInput extends z.ZodType,
-	InstantiatedOutput extends z.ZodType
+	Types extends Record<string, { input: z.ZodType; output: z.ZodType }> = Record<
+		string,
+		{ input: z.ZodType; output: z.ZodType }
+	>,
+	// biome-ignore lint/suspicious/noExplicitAny:_
+	TypeKeys extends keyof Types = any
 > = {
 	type: 'generic-stateful-block'
 	schema: {
@@ -56,14 +60,11 @@ export type GenericStatefulBlock<
 		}>
 		output: z.ZodNull
 	}
-	instantiate: <TypeKey extends keyof Types>(
+	instantiate: <TypeKey extends TypeKeys>(
 		typeKey: TypeKey
-	) => StatefulBlock<InstantiatedInput, InstantiatedOutput, z.infer<InstantiatedInput>>
+	) => StatefulBlock<Types[TypeKey]['input'], Types[TypeKey]['output']>
 	description: string | undefined
+	types: Types
 }
 
-export type AnyBlock =
-	| Block
-	| StatefulBlock
-	| GenericBlock
-	| GenericStatefulBlock<object, z.ZodType, z.ZodType>
+export type AnyBlock = Block | StatefulBlock | GenericBlock | GenericStatefulBlock

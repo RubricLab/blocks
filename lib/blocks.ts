@@ -1,5 +1,5 @@
 import z from 'zod/v4'
-import type { AnyBlock, Block, GenericBlock, StatefulBlock } from './types'
+import type { AnyBlock, Block, GenericBlock, GenericStatefulBlock, StatefulBlock } from './types'
 import { createBlockProxy } from './utils'
 
 type StaticKeys<BM> = {
@@ -16,6 +16,12 @@ type GenericKeys<BM> = {
 		: never
 }[keyof BM]
 
+type StatefulGenericKeys<BM> = {
+	[K in keyof BM]: BM[K] extends GenericStatefulBlock<infer Types>
+		? `${K & string}<${keyof Types & string}>`
+		: never
+}[keyof BM]
+
 export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 	blocks
 }: {
@@ -24,6 +30,7 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 	type SK = StaticKeys<BM>
 	type STK = StatefulKeys<BM>
 	type GK = GenericKeys<BM>
+	type GSK = StatefulGenericKeys<BM>
 	type BlockKey = SK | STK | GK
 
 	type PropsFor<K extends BlockKey> = K extends SK
@@ -33,7 +40,9 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 			: K extends `${infer B}<${infer I}>`
 				? BM[B] extends GenericBlock
 					? z.infer<BM[B]['types'][I]['input']>
-					: never
+					: BM[B] extends GenericStatefulBlock
+						? z.infer<BM[B]['types'][I]['input']>
+						: never
 				: never
 
 	type ReturnFor<K extends BlockKey> = K extends SK
@@ -43,22 +52,36 @@ export function createBlockRenderer<BM extends Record<string, AnyBlock>>({
 			: K extends `${infer B}<${infer I}>`
 				? BM[B] extends GenericBlock
 					? ReturnType<Block<BM[B]['types'][I]['input'], z.infer<BM[B]['types'][I]['input']>>['render']>
-					: never
+					: BM[B] extends GenericStatefulBlock
+						? ReturnType<
+								StatefulBlock<
+									BM[B]['types'][I]['input'],
+									BM[B]['types'][I]['output'],
+									z.infer<BM[B]['types'][I]['input']>
+								>['render']
+							>
+						: never
 				: never
 
 	function render<K extends BlockKey>(opts: { block: K; props: PropsFor<K> }): ReturnFor<K> {
 		const { block, props } = opts
 		const match = (block as string).match(/^([^<]+)<([^>]+)>$/)
+		console.log('HERE')
+		console.log(block)
 
 		if (match) {
 			const [, outer, inner] = match
+
 			console.log({ inner, outer })
 
 			if (!outer || !inner) throw 'shit'
 
-			return (blocks[outer] as GenericBlock).instantiate(inner).render(props) as ReturnFor<K>
+			return (blocks[outer] as GenericBlock | GenericStatefulBlock)
+				.instantiate(inner)
+				.render(props) as ReturnFor<K>
 		}
 
+		console.log('HERERER', block, Object.keys(blocks))
 		const b = (blocks as any)[block]
 		return b.render(props)
 
