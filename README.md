@@ -1,4 +1,4 @@
-# @rubriclab/actions
+# @rubriclab/blocks
 The Blocks package aims to provide a powerful and simple way to define blocks (which are essentially UI primitives) and execute them safely with JSON serializable payloads.
 
 It is part of Rubric's architecture for Generative UI when used with:
@@ -33,16 +33,16 @@ To get started, define a few blocks.
 ```tsx
 import { createBlock } from '@rubriclab/blocks'
 import { Heading } from '~/ui/heading'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 const heading = createBlock({
 	schema: {
-		input: {
+		input: z.object({
 			text: z.string()
-		},
-		output: z.undefined
+		})
 	},
-	render: ({ text }) => <h1>{text}</h1>
+	render: ({ text }) => <h1>{text}</h1>,
+	description: "Renders a heading"
 })
 
 export const blocks = { heading }
